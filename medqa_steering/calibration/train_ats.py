@@ -63,17 +63,46 @@ def train(split="validation"):
     for epoch in range(2):
         pbar = tqdm(loader, desc=f"ATS epoch {epoch}")
         for batch in pbar:
-            H, Z = hidden_and_logits(tok, model, batch)
-            H = H.to(DEVICE).float()
-            Z = Z.to(DEVICE).float() # resolve precision errors
-
-            y = torch.tensor(batch["label"], dtype=torch.long, device=DEVICE)
-
-            tau = head(H)                    # [B,1]
-            Zcal = Z / tau                   # temperature scaling
+            stems = batch["stem"]
+            choices_list = batch["choices"]
+            labels = batch["label"]
+    
+            H, Z = [], []
+            for stem, choices in zip(stems, choices_list):
+                # flatten choices to 4 strings
+                if isinstance(choices, (list, tuple)):
+                    flat = []
+                    for c in choices:
+                        if isinstance(c, (list, tuple)) and len(c) == 1:
+                            flat.append(c[0])
+                        else:
+                            flat.append(c)
+                    if len(flat) > 4:
+                        flat = flat[:4]
+                    elif len(flat) < 4:
+                        flat = flat + [flat[-1]] * (4 - len(flat))
+                else:
+                    flat = [choices] * 4
+    
+                prompt = build_prompt(stem, flat)
+                inputs = tok(prompt, return_tensors="pt").to(DEVICE)
+                out = model(**inputs)
+                h = last_hidden_last_token(out, TARGET_LAYER).squeeze(0)
+                logits = model.lm_head(out.hidden_states[-1][:, -1, :])
+                ids = [tok.convert_tokens_to_ids(x) for x in LETTER]
+                z = logits[:, ids].squeeze(0)
+                H.append(h.cpu()); Z.append(z.cpu())
+    
+            H = torch.stack(H).to(DEVICE).float()
+            Z = torch.stack(Z).to(DEVICE).float()
+            y = labels.to(DEVICE).long()
+    
+            tau = head(H)             # [B,1]
+            Zcal = Z / tau            # [B,4]
             loss = selective_loss(Zcal, y, alpha=0.5)
-
+    
             opt.zero_grad(); loss.backward(); opt.step()
-            pbar.set_postfix(loss=float(loss))
+            pbar.set_postfix(loss=float(loss.detach()))
+
     torch.save(head.state_dict(), ATS_PATH)
     return head

@@ -20,7 +20,7 @@ class ProjHead(nn.Module):
 def batch_hidden_and_targets(tok, model, batch, vec_dict):
     H=[]; T=[]
     for stem, choices, label in zip(batch["stem"], batch["choices"], batch["label"]):
-        h, _ = score_once(tok, model, stem, list(choices))
+        h, _ = score_once(tok, model, stem, choices)
         y = LETTER[int(label)]
         if y in vec_dict:
             H.append(h); T.append(vec_dict[y])

@@ -10,7 +10,7 @@ from baselines.calibration2.apply_ats2 import load_ats, apply_ats
 from baselines.steering2.config2 import ATS_PATH, LOG_DIR, DEVICE, TARGET_LAYER
 from baselines.data2.medqa_dataset2 import MedQADataset, LETTER
 from baselines.data2.prompt_builder2 import build_prompt
-from baselines.eval2.metrics2 import brier_multiclass, ece_multiclass, macro_auroc_ovr
+from baselines.eval2.metrics2 import brier_multiclass, ece_multiclass, macro_auroc_ovr, mean_confidence
 from baselines.eval2.logging_setup2 import setup_logger
 from baselines.model2.hooks2 import last_hidden_last_token
 from baselines.model2.loader2 import load_model
@@ -122,6 +122,7 @@ def evaluate_baseline(split="validation", csv_name="baseline_ats.csv"):
         running_brier = brier_multiclass(probs_arr, labels_arr)
         running_ece = ece_multiclass(probs_arr, labels_arr)
         running_auroc = macro_auroc_ovr(probs_arr, labels_arr)
+        running_mean_conf = mean_confidence(probs_arr)
 
         correct_flag = "1" if pred_idx == label else "0"
         correct_so_far += int(pred_idx == label)
@@ -131,8 +132,7 @@ def evaluate_baseline(split="validation", csv_name="baseline_ats.csv"):
         else:
             auroc_str = f"{running_auroc:.3f}"
         logger.info(
-            f"{example['qid']}: Correct={correct_flag} | Conf={confidence:.3f} | "
-            f"Brier={running_brier:.3f} | ECE={running_ece:.3f} | AUROC={auroc_str}"
+            f"{example['qid']}: Correct={correct_flag} | Conf={confidence:.3f} | MeanConf={running_mean_conf:.3f} | Brier={running_brier:.3f} | ECE={running_ece:.3f} | AUROC={auroc_str}"
         )
 
         history.append(
@@ -142,6 +142,7 @@ def evaluate_baseline(split="validation", csv_name="baseline_ats.csv"):
                 "brier": running_brier,
                 "ece": running_ece,
                 "auroc": running_auroc if not np.isnan(running_auroc) else None,
+                "mean_conf": running_mean_conf,
             }
         )
 
@@ -163,6 +164,7 @@ def evaluate_baseline(split="validation", csv_name="baseline_ats.csv"):
     brier = brier_multiclass(probs_arr, labels_arr)
     ece = ece_multiclass(probs_arr, labels_arr)
     auroc = macro_auroc_ovr(probs_arr, labels_arr)
+    final_mean_conf = mean_confidence(probs_arr)
 
     with csv_path.open("w", newline="", encoding="utf-8") as fp:
         fieldnames = ["qid", "label", "prediction", "confidence"] + [f"p_{l}" for l in LETTER]
@@ -179,11 +181,12 @@ def evaluate_baseline(split="validation", csv_name="baseline_ats.csv"):
 
     logger.info("Model inference complete.")
     logger.info(
-        "ACCURACY={:.4f} | AUROC={} | Brier={:.4f} | ECE={:.4f}".format(
+        "ACCURACY={:.4f} | AUROC={} | Brier={:.4f} | ECE={:.4f} | MeanConf={:.4f}".format(
             accuracy,
             f"{auroc:.4f}" if not np.isnan(auroc) else "nan",
             brier,
             ece,
+            final_mean_conf
         )
     )
     logger.info(f"Saved per-sample probabilities to {csv_path}")

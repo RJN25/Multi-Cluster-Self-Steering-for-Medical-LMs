@@ -64,7 +64,9 @@ def train(split="validation"):
         pbar = tqdm(loader, desc=f"ATS epoch {epoch}")
         for batch in pbar:
             H, Z = hidden_and_logits(tok, model, batch)
-            H = H.to(DEVICE); Z = Z.to(DEVICE)
+            H = H.to(DEVICE).float()
+            Z = Z.to(DEVICE).float() # resolve precision errors
+
             y = torch.tensor(batch["label"], dtype=torch.long, device=DEVICE)
 
             tau = head(H)                    # [B,1]

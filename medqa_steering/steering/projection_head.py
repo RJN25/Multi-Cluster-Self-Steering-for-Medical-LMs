@@ -29,11 +29,15 @@ def batch_hidden_and_targets(tok, model, batch, vec_dict):
 
 @torch.no_grad()
 def score_once(tok, model, stem, choices):
-    prompt = build_prompt(stem, choices)
+    # Flatten one-element tuples, e.g. ('Ampicillin',) → 'Ampicillin'
+    flat_choices = [c[0] if isinstance(c, (list, tuple)) and len(c) == 1 else c
+                    for c in choices]
+    prompt = build_prompt(stem, flat_choices)
     inputs = tok(prompt, return_tensors="pt").to(DEVICE)
     out = model(**inputs)
     h = last_hidden_last_token(out, TARGET_LAYER).squeeze(0)
     return h, None
+    
 
 def train():
     tok, model = load_model()

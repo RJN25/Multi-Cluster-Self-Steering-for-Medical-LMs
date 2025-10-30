@@ -86,7 +86,10 @@ def evaluate(split="test"):
     auroc = macro_auroc_ovr(probs_all, labels)
     mean_conf = np.mean(confidences)
 
+    # test
+    
     logger.info("Model inference complete.")
+
 
     logger.info(f"MEAN_CONFIDENCE={mean_conf:.4f} | ACCURACY={acc:.4f} | AUROC={auroc:.4f} | Brier={brier:.4f} | ECE={ece:.4f}")
     return dict(acc=acc, auroc=auroc, brier=brier, ece=ece)

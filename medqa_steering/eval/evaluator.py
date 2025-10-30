@@ -39,7 +39,9 @@ def evaluate(split="test"):
     logger.info("Loaded model: Qwen/Qwen2.5-3B-Instruct")
     logger.info(f"Starting generation for {len(ds)} MedQA samples...")
 
-    probs_all=[]; labels=[]; corrects=[]
+    probs_all=[]; labels=[]; corrects=[]; confidences = []
+
+    
     for i, item in enumerate(tqdm(ds)):
         prompt = build_prompt(item["stem"], item["choices"])
         # Steered probabilities (before ATS) + info
@@ -57,10 +59,23 @@ def evaluate(split="test"):
         y = int(item["label"])
         probs_all.append(p_cal.cpu().numpy())
         labels.append(y)
-        correct = int(pred==y); corrects.append(correct)
+        conf = p_cal.max().item()
+        correct = int(pred == y)
+        corrects.append(correct)
+        confidences.append(conf)
 
-        # Per-sample logging line (IDs are strings like 'train-10100')
-        logger.info(f"{item['qid']}: Correct={correct} | Conf={p_cal.max().item():.3f}")
+        # --- Per-sample calibration metrics ---
+        # One-hot encode label for brier
+        true_onehot = np.zeros(4)
+        true_onehot[y] = 1
+        brier_sample = np.mean((p_cal.cpu().numpy() - true_onehot) ** 2)
+        
+        # "ECE" proxy per sample = |confidence - correctness|
+        ece_sample = abs(conf - correct)
+        
+        logger.info(
+            f"{item['qid']}: Correct={correct} | Conf={conf:.3f} | Brier={brier_sample:.4f} | ECE={ece_sample:.4f}"
+        )
 
     probs_all = np.stack(probs_all)
     labels = np.array(labels)
@@ -69,7 +84,9 @@ def evaluate(split="test"):
     brier = brier_multiclass(probs_all, labels)
     ece = ece_multiclass(probs_all, labels)
     auroc = macro_auroc_ovr(probs_all, labels)
+    mean_conf = np.mean(confidences)
 
     logger.info("Model inference complete.")
-    logger.info(f"ACCURACY={acc:.4f} | AUROC={auroc:.4f} | Brier={brier:.4f} | ECE={ece:.4f}")
+
+    logger.info(f"MEAN_CONFIDENCE={mean_conf:.4f} | ACCURACY={acc:.4f} | AUROC={auroc:.4f} | Brier={brier:.4f} | ECE={ece:.4f}")
     return dict(acc=acc, auroc=auroc, brier=brier, ece=ece)

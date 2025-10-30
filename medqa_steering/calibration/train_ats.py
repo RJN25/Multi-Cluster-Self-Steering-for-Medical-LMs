@@ -51,7 +51,7 @@ def hidden_and_logits(tok, model, batch):
 def train(split="validation"):
     tok, model = load_model()
     ds = MedQADataset(split=split)  # use a held-out slice as calibration set
-    loader = DataLoader(ds, batch_size=1, shuffle=True) # minimize to batch = 1 (batch to increasefor further research)
+    loader = DataLoader(ds, batch_size=1, shuffle=True) # minimize to batch = 1 (batch to increase for further research)
 
     # infer hidden size
     h0, _ = hidden_and_logits(tok, model, next(iter(loader)))

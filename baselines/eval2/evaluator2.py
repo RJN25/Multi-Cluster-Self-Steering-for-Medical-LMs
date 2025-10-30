@@ -9,7 +9,7 @@ from steering.io import load_vectors
 from steering.projection_head import ProjHead
 from steering.steer_infer import steer_and_score_letters
 from calibration.apply_ats import load_ats, apply_ats
-from eval.metrics import brier_multiclass, ece_multiclass, macro_auroc_ovr
+from eval2.metrics2 import brier_multiclass, ece_multiclass, macro_auroc_ovr, mean_confidence
 from eval.logging_setup import setup_logger
 from config import DEVICE, TARGET_LAYER, PROJ_PATH
 
@@ -69,7 +69,8 @@ def evaluate(split="test"):
     brier = brier_multiclass(probs_all, labels)
     ece = ece_multiclass(probs_all, labels)
     auroc = macro_auroc_ovr(probs_all, labels)
+    mean_conf= mean_confidence(probs_all)
 
     logger.info("Model inference complete.")
-    logger.info(f"ACCURACY={acc:.4f} | AUROC={auroc:.4f} | Brier={brier:.4f} | ECE={ece:.4f}")
-    return dict(acc=acc, auroc=auroc, brier=brier, ece=ece)
+    logger.info(f"ACCURACY={acc:.4f} | AUROC={auroc:.4f} | Brier={brier:.4f} | ECE={ece:.4f} | MeanConf={mean_conf:.4f}")
+    return dict(acc=acc, auroc=auroc, brier=brier, ece=ece, mean_conf=mean_conf)

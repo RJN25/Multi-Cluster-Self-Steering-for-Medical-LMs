@@ -7,6 +7,10 @@ def brier_multiclass(probs, y):
     onehot = np.eye(K)[y]
     return np.mean(np.sum((probs - onehot)**2, axis=1))
 
+def mean_confidence(probs):
+    """Mean of max class probabilities across samples."""
+    return float(np.mean(np.max(probs, axis=1)))
+
 def ece_multiclass(probs, y, n_bins=15):
     # Expected Calibration Error (one-vs-rest, averaged)
     N,K = probs.shape

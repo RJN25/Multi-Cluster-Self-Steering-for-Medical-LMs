@@ -60,23 +60,25 @@ def _cmd_train(args: argparse.Namespace) -> None:
         command.append(f"ngpus={args.ngpus}")
     overrides = list(args.override or [])
     user_override_keys = {
-        override.split("=", 1)[0] for override in overrides if "=" in override
+        override.split("=", 1)[0].lstrip("+") for override in overrides if "=" in override
     }
 
     if not _vllm_available():
         fallback_overrides = [
-            ("rollout.name", "hf"),
-            ("rollout.top_k", "0"),
-            ("rollout.val_kwargs.top_k", "0"),
-            ("rollout.tensor_model_parallel_size", "1"),
             ("actor_rollout_ref.rollout.name", "hf"),
             ("actor_rollout_ref.rollout.top_k", "0"),
             ("actor_rollout_ref.rollout.val_kwargs.top_k", "0"),
             ("actor_rollout_ref.rollout.tensor_model_parallel_size", "1"),
+            ("+rollout.name", "hf"),
+            ("+rollout.top_k", "0"),
+            ("+rollout.val_kwargs.top_k", "0"),
+            ("+rollout.tensor_model_parallel_size", "1"),
         ]
 
         missing_overrides = [
-            f"{key}={value}" for key, value in fallback_overrides if key not in user_override_keys
+            f"{key}={value}"
+            for key, value in fallback_overrides
+            if key.lstrip("+") not in user_override_keys
         ]
 
         if missing_overrides:

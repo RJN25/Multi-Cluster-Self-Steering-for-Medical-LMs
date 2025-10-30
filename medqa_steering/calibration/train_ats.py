@@ -20,9 +20,25 @@ def selective_loss(q_logits, y_idx, alpha=0.5):
 
 @torch.no_grad()
 def hidden_and_logits(tok, model, batch):
-    H=[]; Z=[]
+        H=[]; Z=[]
     for stem, choices in zip(batch["stem"], batch["choices"]):
-        prompt = build_prompt(stem, list(choices))
+        # --- Flatten and sanitize choices ---
+        if isinstance(choices, (list, tuple)):
+            flat = []
+            for c in choices:
+                if isinstance(c, (list, tuple)) and len(c) == 1:
+                    flat.append(c[0])
+                else:
+                    flat.append(c)
+            # Ensure exactly 4 options
+            if len(flat) > 4:
+                flat = flat[:4]
+            elif len(flat) < 4:
+                flat = flat + [flat[-1]] * (4 - len(flat))
+        else:
+            flat = [choices] * 4
+
+        prompt = build_prompt(stem, flat)
         inputs = tok(prompt, return_tensors="pt").to(DEVICE)
         out = model(**inputs)
         h = last_hidden_last_token(out, TARGET_LAYER).squeeze(0)     # [d]

@@ -39,7 +39,8 @@ def evaluate(split="test"):
     logger.info("Loaded model: Qwen/Qwen2.5-3B-Instruct")
     logger.info(f"Starting generation for {len(ds)} MedQA samples...")
 
-    probs_all=[]; labels=[]; corrects=[]
+    probs_all=[]; labels=[]; corrects=[]; confidences = []
+
     for i, item in enumerate(tqdm(ds)):
         prompt = build_prompt(item["stem"], item["choices"])
         # Steered probabilities (before ATS) + info
@@ -57,7 +58,12 @@ def evaluate(split="test"):
         y = int(item["label"])
         probs_all.append(p_cal.cpu().numpy())
         labels.append(y)
-        correct = int(pred==y); corrects.append(correct)
+        conf = p_cal.max().item()
+        correct = int(pred == y)
+        corrects.append(correct)
+        confidences.append(conf)
+
+
 
         # Per-sample logging line (IDs are strings like 'train-10100')
         logger.info(f"{item['qid']}: Correct={correct} | Conf={p_cal.max().item():.3f}")

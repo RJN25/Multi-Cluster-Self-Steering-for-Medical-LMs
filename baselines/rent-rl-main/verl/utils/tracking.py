@@ -41,8 +41,17 @@ class Tracking:
         if "tracking" in default_backend or "wandb" in default_backend:
             import wandb
 
-            wandb.init(project=project_name, name=experiment_name, config=config)
-            self.logger["wandb"] = wandb
+            try:
+                wandb.init(project=project_name, name=experiment_name, config=config)
+            except wandb.errors.UsageError as exc:
+                if "api_key not configured" in str(exc).lower():
+                    print(
+                        "W&B API key not configured; disabling wandb logging for this run."
+                    )
+                else:
+                    raise
+            else:
+                self.logger["wandb"] = wandb
 
         if "mlflow" in default_backend:
             import os

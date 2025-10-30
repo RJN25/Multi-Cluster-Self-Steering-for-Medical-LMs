@@ -72,6 +72,8 @@ def train():
             H,T = batch_hidden_and_targets(tok, model, batch, vec_dict)
             if H is None: continue
             H = H.to(DEVICE); T = T.to(DEVICE)
+            H = H.float()
+            T = T.float() # resolve precision errors
             pred = head(H)
             loss = crit(pred, T)
             opt.zero_grad(); loss.backward(); opt.step()

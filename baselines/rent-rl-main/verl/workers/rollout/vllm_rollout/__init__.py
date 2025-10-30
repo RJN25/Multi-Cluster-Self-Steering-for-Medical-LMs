@@ -14,31 +14,42 @@
 import os
 from importlib.metadata import PackageNotFoundError, version
 
+from packaging.version import InvalidVersion, Version
 
-def get_version(pkg):
+def get_version(pkg: str):
     try:
-        return version(pkg)
+        detected_version = version(pkg)
     except PackageNotFoundError:
         return None
+
+    if "ROCM_PATH" in os.environ:
+        import re
+
+        match = re.match(r"(\d+\.\d+\.?\d*)", detected_version)
+        if match is not None:
+            detected_version = match.group(1)
+
+    return detected_version
 
 
 package_name = "vllm"
 package_version = get_version(package_name)
 
 ###
-# package_version = get_version(package_name)
-# [SUPPORT AMD:]
-# Do not call any torch.cuda* API here, or ray actor creation import class will fail.
-if "ROCM_PATH" in os.environ:
-    import re
+if package_version is None:
+    raise RuntimeError(
+        "vLLM is required but was not found. Please install the `vllm` package so "
+        "that its version can be detected."
+    )
 
-    package_version = version(package_name)
-    package_version = re.match(r"(\d+\.\d+\.?\d*)", package_version).group(1)
-else:
-    package_version = get_version(package_name)
-###
+try:
+    parsed_version = Version(package_version)
+except InvalidVersion as exc:
+    raise RuntimeError(
+        f"Unable to parse installed vLLM version '{package_version}'."
+    ) from exc
 
-if package_version <= "0.6.3":
+if parsed_version <= Version("0.6.3"):
     vllm_mode = "customized"
     from .fire_vllm_rollout import FIREvLLMRollout  # noqa: F401
     from .vllm_rollout import vLLMRollout  # noqa: F401

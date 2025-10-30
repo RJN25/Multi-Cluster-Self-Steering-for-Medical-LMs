@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import importlib.util
 import os
 import subprocess
 import sys
@@ -12,6 +13,12 @@ from typing import Sequence
 _RENT_ROOT = Path(__file__).resolve().parent / "rent-rl-main"
 _PREPROCESS_SCRIPT = _RENT_ROOT / "examples" / "data_preprocess" / "medqa.py"
 _DEFAULT_EXPS = "[grpo,entropy,format,sampleval,medqa]"
+
+def _vllm_available() -> bool:
+    """Return ``True`` if the optional :mod:`vllm` dependency can be imported."""
+
+    return importlib.util.find_spec("vllm") is not None
+
 
 
 def _run_command(command: Sequence[str], *, cwd: Path | None = None) -> None:
@@ -51,8 +58,37 @@ def _cmd_train(args: argparse.Namespace) -> None:
     ]
     if args.ngpus is not None:
         command.append(f"ngpus={args.ngpus}")
-    if args.override:
-        command.extend(args.override)
+    overrides = list(args.override or [])
+    user_override_keys = {
+        override.split("=", 1)[0] for override in overrides if "=" in override
+    }
+
+    if not _vllm_available():
+        fallback_overrides = [
+            ("rollout.name", "hf"),
+            ("rollout.top_k", "0"),
+            ("rollout.val_kwargs.top_k", "0"),
+            ("rollout.tensor_model_parallel_size", "1"),
+            ("actor_rollout_ref.rollout.name", "hf"),
+            ("actor_rollout_ref.rollout.top_k", "0"),
+            ("actor_rollout_ref.rollout.val_kwargs.top_k", "0"),
+            ("actor_rollout_ref.rollout.tensor_model_parallel_size", "1"),
+        ]
+
+        missing_overrides = [
+            f"{key}={value}" for key, value in fallback_overrides if key not in user_override_keys
+        ]
+
+        if missing_overrides:
+            print(
+                "vLLM not detected; applying Hugging Face rollout overrides: "
+                + ", ".join(missing_overrides),
+                file=sys.stderr,
+            )
+            overrides.extend(missing_overrides)
+
+    if overrides:
+        command.extend(overrides)
     _run_command(command, cwd=_RENT_ROOT)
 
 

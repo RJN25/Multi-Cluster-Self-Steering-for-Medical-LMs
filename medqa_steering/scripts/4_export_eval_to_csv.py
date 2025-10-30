@@ -9,9 +9,11 @@ CSV_PATH = "logs/eval_results.csv"
 # Load MedQA test set
 ds = load_dataset("GBaker/MedQA-USMLE-4-options-hf")["test"]
 
-# Compile regex to extract log line info
+# Updated regex for new log format
+# Example line:
+# test-00000: Correct=0 | Conf=0.296 | Brier=0.0718 | ECE=0.2960
 line_re = re.compile(
-    r"Q(\d+): Correct=(\d) \| Conf=([\d.]+) \| Brier=([\d.]+) \| ECE=([\d.]+)"
+    r"(?:Q|test-)(\d+): Correct=(\d) \| Conf=([\d.]+)(?: \| Brier=([\d.]+))?(?: \| ECE=([\d.]+))?"
 )
 
 rows = []
@@ -25,26 +27,19 @@ with open(LOG_PATH, "r") as f:
         idx = int(m.group(1))
         correct_flag = int(m.group(2))
         conf = float(m.group(3))
-        brier = float(m.group(4))
-        ece = float(m.group(5))
+        brier = float(m.group(4)) if m.group(4) else None
+        ece = float(m.group(5)) if m.group(5) else None
 
-        # Get MedQA entry
         if idx < len(ds):
             entry = ds[idx]
-            qid = entry["id"] if "id" in entry else f"test-{idx:05d}"
+            qid = entry.get("id", f"test-{idx:05d}")
             question = entry["sent1"]
             options = [entry[f"ending{i}"] for i in range(4)]
             true_label = entry["label"]
         else:
             qid, question, options, true_label = f"test-{idx:05d}", "", ["", "", "", ""], None
 
-        # Find predicted answer letter (if available from log)
-        pred = None
-        if correct_flag == 1:
-            pred = ["A","B","C","D"][true_label]
-        else:
-            # Can't recover exact predicted label from log — mark unknown
-            pred = "?"
+        pred = ["A","B","C","D"][true_label] if correct_flag == 1 else "?"
 
         rows.append({
             "qid": qid,
@@ -58,8 +53,13 @@ with open(LOG_PATH, "r") as f:
             "correct": correct_flag,
             "confidence": conf,
             "brier": brier,
-            "ece": ece
+            "ece": ece,
         })
+
+# Safety guard
+if not rows:
+    print("No matching log lines found. Check your logs/eval.log format.")
+    exit()
 
 # Save CSV
 os.makedirs(os.path.dirname(CSV_PATH), exist_ok=True)

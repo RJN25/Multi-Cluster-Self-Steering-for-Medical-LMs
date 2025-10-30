@@ -20,8 +20,8 @@ def selective_loss(q_logits, y_idx, alpha=0.5):
 
 @torch.no_grad()
 def hidden_and_logits(tok, model, batch):
-        H=[]; Z=[]
-    for stem, choices in zip(batch["stem"], batch["choices"]):
+    H=[]; Z=[]
+    for stem, choices, label in zip(batch["stem"], batch["choices"], batch["label"]):
         # --- Flatten and sanitize choices ---
         if isinstance(choices, (list, tuple)):
             flat = []

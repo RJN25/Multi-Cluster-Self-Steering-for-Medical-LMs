@@ -1,0 +1,24 @@
+# @package _global_
+
+data:
+  train_files: ${oc.env:HOME}/data/medqa/train.parquet
+  val_files: ${oc.env:HOME}/data/medqa/val.parquet
+  max_prompt_length: 1024
+  max_response_length: 1024
+  filter_overlong_prompts: true
+  train_batch_size: 128
+
+actor_rollout_ref:
+  actor:
+    ppo_mini_batch_size: 64
+    ppo_micro_batch_size_per_gpu: 16
+  rollout:
+    val_kwargs:
+      top_k: -1
+      top_p: 0.6
+      temperature: 0.8
+      n: 16
+
+trainer:
+  test_freq: 1
+  total_epochs: 30

@@ -883,8 +883,12 @@ class RayPPOTrainer:
         elif "countdown" in data_source.lower():
             from verl.utils.reward_score import countdown
             extracted_answer = countdown.extract_solution(response_str)
+        elif "medqa" in data_source.lower():
+            from verl.utils.reward_score import medqa
+
+            extracted_answer = medqa.extract_solution(response_str)
         else:
-            assert False, "Only gsm8k is supported for majority reward manager"        
+            raise AssertionError(f"Unsupported data_source '{data_source}' for entropy reward extraction")
         return extracted_answer
 
     def fit(self):

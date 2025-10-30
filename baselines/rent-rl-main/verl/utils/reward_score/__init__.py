@@ -57,6 +57,10 @@ def _default_compute_score(data_source, solution_str, ground_truth, extra_info=N
         from . import gpqa
     
         res = gpqa.compute_score(solution_str, ground_truth)
+    elif data_source in ["medqa", "GBaker/MedQA-USMLE-4-options-hf"]:
+        from . import medqa
+
+        res = medqa.compute_score(solution_str, ground_truth)
     else:
         raise NotImplementedError(f"Reward function is not implemented for {data_source=}")
 

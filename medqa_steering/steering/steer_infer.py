@@ -8,7 +8,7 @@ def steer_and_score_letters(tok, model, prompt, proj_head, vec_dict, cosine_gate
     out = model(**inputs)
 
     # hidden before steering
-    h = last_hidden_last_token(out, TARGET_LAYER)           # [1,d]
+    h = last_hidden_last_token(out, TARGET_LAYER).float()   # [1,d], cast to FP32
     with torch.no_grad():
         pvec = proj_head(h)                                 # [1,d]
         # choose v* with max cosine

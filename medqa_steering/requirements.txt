@@ -9,3 +9,4 @@ protobuf
 sentencepiece
 hf_transfer
 plotly
+kaleido

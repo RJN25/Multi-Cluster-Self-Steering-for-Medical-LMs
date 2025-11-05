@@ -4,27 +4,39 @@ import plotly.graph_objects as go
 
 # === File paths ===
 LOG_DIR = "graph_logs"
-DSAC_LOG = os.path.join(LOG_DIR, "dsac1.log")
-QWEN_LOG = os.path.join(LOG_DIR, "qwen2.log")
-OUT_HTML = os.path.join(LOG_DIR, "comparison_metrics.html")
-OUT_PNG = os.path.join(LOG_DIR, "comparison_metrics.png")
+LOG_DIR = "."
+DSAC_LOG = "dsac1.log"
+QWEN_LOG = "qwen2.log"
+OUT_HTML = "comparison_metrics.html"
+OUT_PNG = "comparison_metrics.png"
 
 # === Regex to capture final summary lines ===
 summary_re = re.compile(
-    r"(?:MEAN_CONFIDENCE|MeanConf)=(?P<conf>[\d.]+).*?"
-    r"ACCURACY=(?P<acc>[\d.]+).*?"
-    r"AUROC=(?P<auroc>[\d.]+).*?"
-    r"Brier=(?P<brier>[\d.]+).*?"
+    r"(?:MEAN_CONFIDENCE|MeanConf)=(?P<conf>[\d.]+)|"
+    r"ACCURACY=(?P<acc>[\d.]+)|"
+    r"AUROC=(?P<auroc>[\d.]+)|"
+    r"Brier=(?P<brier>[\d.]+)|"
     r"ECE=(?P<ece>[\d.]+)",
     re.IGNORECASE
 )
 
+
 def extract_metrics(path):
     text = open(path).read()
-    m = summary_re.search(text)
-    if not m:
-        raise ValueError(f"Could not parse summary from {path}")
-    return {k: float(v) for k, v in m.groupdict().items()}
+    matches = summary_re.findall(text)
+    # Flatten and map out
+    values = {"acc": None, "conf": None, "auroc": None, "brier": None, "ece": None}
+    for groups in matches:
+        # Each match returns a tuple of 5 possible positions
+        keys = list(values.keys())
+        for i, val in enumerate(groups):
+            if val:
+                values[keys[i]] = float(val)
+    # sanity check
+    if not all(v is not None for v in values.values()):
+        raise ValueError(f"Could not parse all metrics from {path}")
+    return values
+
 
 dsac = extract_metrics(DSAC_LOG)
 qwen = extract_metrics(QWEN_LOG)

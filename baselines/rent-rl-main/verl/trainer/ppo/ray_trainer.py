@@ -40,7 +40,7 @@ from codetiming import Timer
 from omegaconf import OmegaConf, open_dict
 from torch.utils.data import Dataset, RandomSampler, SequentialSampler
 from torchdata.stateful_dataloader import StatefulDataLoader
-from tqdm import tqdm
+from verl.utils.progress import safe_tqdm
 
 from verl import DataProto
 from verl.protocol import pad_dataproto_to_divisor, unpad_dataproto
@@ -923,15 +923,14 @@ class RayPPOTrainer:
             if self.config.trainer.get("val_only", False):
                 return
 
-        # add tqdm with detailed progress tracking
-        progress_bar = tqdm(
+        # add tqdm with detailed progress tracking (outer overall-step bar)
+        progress_bar = safe_tqdm(
             total=self.total_training_steps,
             initial=self.global_steps,
             desc="Training Progress",
-            force=True,
             unit="steps",
             position=0,
-            bar_format="{l_bar}{bar}| {n_fmt}/{total_fmt} steps [{elapsed}<{remaining}]"
+            bar_format="{l_bar}{bar}| {n_fmt}/{total_fmt} steps [{elapsed}<{remaining}]",
         )
 
         # we start from step 1
@@ -939,7 +938,25 @@ class RayPPOTrainer:
         last_val_metrics = None
 
         for epoch in range(self.config.trainer.total_epochs):
-            for batch_dict in self.train_dataloader:
+            # per-epoch progress bar (batches)
+            try:
+                epoch_pbar = safe_tqdm(
+                    total=len(self.train_dataloader),
+                    desc=f"Epoch {epoch+1}/{self.config.trainer.total_epochs}",
+                    unit="batch",
+                    position=1,
+                    leave=False,
+                )
+            except Exception:
+                # If tqdm variant rejects some kwargs, fall back to a minimal bar
+                epoch_pbar = safe_tqdm(
+                    total=len(self.train_dataloader),
+                    desc=f"Epoch {epoch+1}/{self.config.trainer.total_epochs}",
+                    unit="batch",
+                )
+
+            with epoch_pbar:
+                for batch_dict in self.train_dataloader:
                 metrics = {}
                 timing_raw = {}
                 batch: DataProto = DataProto.from_single_dict(batch_dict)
@@ -1221,6 +1238,13 @@ class RayPPOTrainer:
                     pprint(f"Final validation metrics: {last_val_metrics}")
                     progress_bar.close()
                     return
+
+                # update both the overall progress and the epoch (batch) progress
+                try:
+                    epoch_pbar.update(1)
+                except Exception:
+                    # ignore if epoch_pbar is not available for some reason
+                    pass
 
                 progress_bar.update(1)
                 self.global_steps += 1

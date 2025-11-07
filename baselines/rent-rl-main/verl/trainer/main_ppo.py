@@ -70,7 +70,15 @@ def run_ppo(config) -> None:
     if not ray.is_initialized():
         # this is for local ray cluster
         ray.init(
-            runtime_env={"env_vars": {"TOKENIZERS_PARALLELISM": "true", "NCCL_DEBUG": "WARN", "VLLM_LOGGING_LEVEL": "WARN"}},
+            runtime_env={
+                "env_vars": {
+                    "TOKENIZERS_PARALLELISM": "true",
+                    "NCCL_DEBUG": "WARN",
+                    "VLLM_LOGGING_LEVEL": "WARN"
+                },
+                # Ensure our progress utils are available in workers
+                "py_modules": [os.path.dirname(os.path.dirname(os.path.dirname(__file__)))]
+            },
             num_cpus=config.ray_init.num_cpus,
             num_gpus=config.ngpus
         )

@@ -61,7 +61,7 @@ def train():
 
     head = ProjHead(dim).to(DEVICE)
     opt = optim.AdamW(head.parameters(), lr=3e-4, weight_decay=0.0)
-    crit = nn.MSELoss()
+    crit = nn.BCELoss()
 
     ds = MedQADataset(split="train")
     loader = DataLoader(ds, batch_size=BATCH_SIZE, shuffle=True)

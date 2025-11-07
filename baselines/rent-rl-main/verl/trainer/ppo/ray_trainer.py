@@ -957,9 +957,9 @@ class RayPPOTrainer:
 
             with epoch_pbar:
                 for batch_dict in self.train_dataloader:
-                metrics = {}
-                timing_raw = {}
-                batch: DataProto = DataProto.from_single_dict(batch_dict)
+                    metrics = {}
+                    timing_raw = {}
+                    batch: DataProto = DataProto.from_single_dict(batch_dict)
 
                 # pop those keys for generation
                 batch_keys_to_pop = ["input_ids", "attention_mask", "position_ids"]

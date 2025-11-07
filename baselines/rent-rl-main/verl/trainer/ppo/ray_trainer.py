@@ -923,8 +923,16 @@ class RayPPOTrainer:
             if self.config.trainer.get("val_only", False):
                 return
 
-        # add tqdm
-        progress_bar = tqdm(total=self.total_training_steps, initial=self.global_steps, desc="Training Progress")
+        # add tqdm with detailed progress tracking
+        progress_bar = tqdm(
+            total=self.total_training_steps,
+            initial=self.global_steps,
+            desc="Training Progress",
+            force=True,
+            unit="steps",
+            position=0,
+            bar_format="{l_bar}{bar}| {n_fmt}/{total_fmt} steps [{elapsed}<{remaining}]"
+        )
 
         # we start from step 1
         self.global_steps += 1
@@ -1157,12 +1165,17 @@ class RayPPOTrainer:
                             self._save_checkpoint()
 
                 # training metrics
+                # Update training progress metrics
+                percent_complete = (self.global_steps / self.total_training_steps) * 100
                 metrics.update(
                     {
                         "training/global_step": self.global_steps,
                         "training/epoch": epoch,
+                        "training/steps_remaining": self.total_training_steps - self.global_steps,
+                        "training/percent_complete": percent_complete,
                     }
                 )
+                print(f"\nProgress: {self.global_steps}/{self.total_training_steps} steps ({percent_complete:.1f}% complete)")
                 # collect metrics
                 metrics.update(compute_data_metrics(batch=batch, use_critic=self.use_critic))
                 metrics.update(compute_timing_metrics(batch=batch, timing_raw=timing_raw))

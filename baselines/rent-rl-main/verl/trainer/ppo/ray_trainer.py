@@ -1231,20 +1231,20 @@ class RayPPOTrainer:
                 n_gpus = self.resource_pool_manager.get_n_gpus()
                 metrics.update(compute_throughout_metrics(batch=batch, timing_raw=timing_raw, n_gpus=n_gpus))
 
-                    # TODO: make a canonical logger that supports various backend
-                    logger.log(data=metrics, step=self.global_steps)
+                # TODO: make a canonical logger that supports various backend
+                logger.log(data=metrics, step=self.global_steps)
 
-                    if is_last_step:
-                        pprint(f"Final validation metrics: {last_val_metrics}")
-                        progress_bar.close()
-                        return
+                if is_last_step:
+                    pprint(f"Final validation metrics: {last_val_metrics}")
+                    progress_bar.close()
+                    return
 
-                    # update both the overall progress and the epoch (batch) progress
-                    try:
-                        epoch_pbar.update(1)
-                    except Exception:
-                        # ignore if epoch_pbar is not available for some reason
-                        pass
+                # update both the overall progress and the epoch (batch) progress
+                try:
+                    epoch_pbar.update(1)
+                except Exception:
+                    # ignore if epoch_pbar is not available for some reason
+                    pass
 
-                    progress_bar.update(1)
-                    self.global_steps += 1
+                progress_bar.update(1)
+                self.global_steps += 1

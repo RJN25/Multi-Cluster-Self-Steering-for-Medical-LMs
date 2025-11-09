@@ -957,6 +957,7 @@ class RayPPOTrainer:
 
             with epoch_pbar:
                 for batch_dict in self.train_dataloader:
+                    print(f"\n[Step {self.global_steps + 1}/{self.total_training_steps}] Starting batch processing...")
                     metrics = {}
                     timing_raw = {}
                     batch: DataProto = DataProto.from_single_dict(batch_dict)
@@ -979,6 +980,7 @@ class RayPPOTrainer:
 
                 with _timer("step", timing_raw):
                     # generate a batch
+                    print(f"[Step {self.global_steps + 1}] Phase 1/5: Generating responses...")
                     with _timer("gen", timing_raw):
                         if not self.async_rollout_mode:
                             gen_batch_output = self.actor_rollout_wg.generate_sequences(gen_batch)
@@ -1020,6 +1022,7 @@ class RayPPOTrainer:
                     
                     
                     if not self.config.trainer.minimize_entropy:
+                        print(f"[Step {self.global_steps + 1}] Phase 2/5: Computing rewards...")
                         with _timer("reward", timing_raw):
                             # compute reward model score
                             if self.use_rm:
@@ -1031,6 +1034,7 @@ class RayPPOTrainer:
                                 reward_tensor, reward_extra_infos_dict = compute_reward(batch, self.reward_fn)
 
                     # recompute old_log_probs
+                    print(f"[Step {self.global_steps + 1}] Phase 3/5: Computing log probabilities...")
                     with _timer("old_log_prob", timing_raw):
                         old_log_prob = self.actor_rollout_wg.compute_log_prob(batch)
                         entropys = old_log_prob.batch["entropys"]
@@ -1147,6 +1151,7 @@ class RayPPOTrainer:
                     # implement critic warmup
                     if self.config.trainer.critic_warmup <= self.global_steps and not self.config.trainer.skip_update:
                         # update actor
+                        print(f"[Step {self.global_steps + 1}] Phase 4/5: Updating actor (PPO training)...")
                         with _timer("update_actor", timing_raw):
                             batch.meta_info["multi_turn"] = self.config.actor_rollout_ref.rollout.multi_turn.enable
                             actor_output = self.actor_rollout_wg.update_actor(batch)
@@ -1178,11 +1183,13 @@ class RayPPOTrainer:
                         metrics.update(val_metrics)
 
                     if self.config.trainer.save_freq > 0 and (is_last_step or self.global_steps % self.config.trainer.save_freq == 0):
+                        print(f"[Step {self.global_steps + 1}] Saving checkpoint...")
                         with _timer("save_checkpoint", timing_raw):
                             self._save_checkpoint()
 
                 # training metrics
                 # Update training progress metrics
+                print(f"[Step {self.global_steps + 1}] Phase 5/5: Logging metrics and finalizing...")
                 percent_complete = (self.global_steps / self.total_training_steps) * 100
                 metrics.update(
                     {
@@ -1248,3 +1255,4 @@ class RayPPOTrainer:
 
                 progress_bar.update(1)
                 self.global_steps += 1
+                print(f"[Step {self.global_steps}] ✓ Batch completed successfully!\n")

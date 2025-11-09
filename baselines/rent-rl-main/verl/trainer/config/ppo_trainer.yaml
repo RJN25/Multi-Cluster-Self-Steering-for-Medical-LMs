@@ -226,7 +226,7 @@ trainer:
   validation_data_dir: null # directory for logging the validation data, no dump if null
   nnodes: 1
   n_gpus_per_node: ${ngpus}
-  save_freq: 500
+  save_freq: 100
   # auto: find the last ckpt to resume. If can't find, start from scratch
   resume_mode: auto # or disable or resume_path if resume_from_path is set
   resume_from_path: null

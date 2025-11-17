@@ -28,11 +28,12 @@ sys.stdout = Tee(sys.stdout, log_f)
 sys.stderr = Tee(sys.stderr, log_f)
 print("\n===== NEW PROJECTION RUN:", datetime.now(), "=====\n")
 
-# model
+        
 class ProjHead(nn.Module):
     def __init__(self, dim):
         super().__init__()
         self.P = nn.Linear(dim, dim, bias=False)
+
     def forward(self, h):
         return self.P(h)
 

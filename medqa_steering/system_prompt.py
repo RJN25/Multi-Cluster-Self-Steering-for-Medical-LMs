@@ -14,5 +14,6 @@ The final format that must be followed is : <think> reasoning process here
 and uncertainty here </analysis> <confidence> confidence level here (number between 0
 and 1) </confidence> )
 """
+
 def get_system_prompt():
     return QWEN_SYSTEM_PROMPT

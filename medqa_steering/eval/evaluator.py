@@ -62,7 +62,7 @@ def evaluate(split="test"):
         conf = p_cal.max().item()
         correct = int(pred == y)
         corrects.append(correct)
-        confidences.append(conf)
+        confidences.append(conf) # injection
 
         # --- Per-sample calibration metrics ---
         # One-hot encode label for brier

@@ -70,10 +70,9 @@ def hidden_and_logits(tok, model, prompt):
     logits = model.lm_head(out.hidden_states[-1][:, -1, :])
 
     ids = [tok.convert_tokens_to_ids(x) for x in LETTER]
-    z4 = logits[:, ids].squeeze(0)  # [4]
+    z4 = logits[:, ids][0]    # ALWAYS shape [4]
 
     return h.squeeze(0), z4
-
 
 # eval
 def evaluate(split="test"):

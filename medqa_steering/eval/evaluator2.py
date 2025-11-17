@@ -39,7 +39,7 @@ log_f = open(LOG_TXT, "a")
 sys.stdout = Tee(sys.stdout, log_f)
 sys.stderr = Tee(sys.stderr, log_f)
 
-print("\n===== START NEW EVAL RUN:", datetime.now(), "=====\n")
+# print("\n===== START NEW EVAL RUN:", datetime.now(), "=====\n")
 
 logging.basicConfig(
     level=logging.INFO,
@@ -150,7 +150,7 @@ def evaluate(split="test"):
         conf = float(p_cal[pred].item())
         correct = int(pred == y)
 
-        probs_all.append(p_cal.detach().cpu().numpy())
+        probs_all.append(p_cal.detach().float().cpu().numpy())
         labels.append(y)
         confidences.append(conf)
         corrects.append(correct)

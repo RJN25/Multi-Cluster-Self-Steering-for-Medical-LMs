@@ -1,1 +1,1 @@
-qid,true_label,pred_label,correct,calibrated_confidence,cot_raw,cot_answer,cot_confidence,cot_analysis
+qid,true_label,pred_label,correct,calibrated_confidence,best_class,best_cosine,cot_raw,cot_answer,cot_confidence,cot_analysis

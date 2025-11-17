@@ -2,6 +2,8 @@ import os, sys, logging, csv
 from datetime import datetime
 
 import torch
+import torch.nn as nn
+import torch.nn.functional as F
 import numpy as np
 from tqdm import tqdm
 
@@ -12,23 +14,19 @@ from model.hooks import last_hidden_last_token
 
 from steering.io import load_vectors
 from steering.projection_head2 import ProjHead
-from steering.steer_infer import steer_and_score_letters
-
 from calibration.ats_head import ATSHead
 from get_tag_contents import extract_all
-from eval.metrics import brier_multiclass, ece_multiclass, macro_auroc_ovr
 
-from config import DEVICE, TARGET_LAYER, PROJ_PATH, ATS_PATH, LOG_DIR
+from config import DEVICE, TARGET_LAYER, PROJ_PATH, ATS_PATH, LOG_DIR, ALPHA
 
-
-# tee logging
+# log files
 LOG_TXT = os.path.join(LOG_DIR, "eval.log")
 CSV_OUT = os.path.join(LOG_DIR, "eval_results.csv")
+
 os.makedirs(LOG_DIR, exist_ok=True)
 
 class Tee:
-    def __init__(self, *files):
-        self.files = files
+    def __init__(self, *files): self.files = files
     def write(self, obj):
         for f in self.files:
             f.write(obj)
@@ -41,7 +39,7 @@ log_f = open(LOG_TXT, "a")
 sys.stdout = Tee(sys.stdout, log_f)
 sys.stderr = Tee(sys.stderr, log_f)
 
-# print("\n===== START NEW EVAL RUN:", datetime.now(), "=====\n")
+print("\n===== START NEW EVAL RUN:", datetime.now(), "=====\n")
 
 logging.basicConfig(
     level=logging.INFO,
@@ -50,7 +48,6 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-# gen with cot
 @torch.no_grad()
 def generate_with_cot(tok, model, prompt):
     enc = tok(prompt, return_tensors="pt").to(DEVICE)
@@ -62,30 +59,13 @@ def generate_with_cot(tok, model, prompt):
     return tok.decode(out[0], skip_special_tokens=True)
 
 
-# ats head load
 def load_ats_head(dim):
     head = ATSHead(dim).to(DEVICE)
-    state = torch.load(ATS_PATH, map_location=DEVICE)
-    head.load_state_dict(state)
+    head.load_state_dict(torch.load(ATS_PATH, map_location=DEVICE))
     head.eval()
     return head
 
 
-# hidden and logits
-@torch.no_grad()
-def hidden_and_logits(tok, model, prompt):
-    inputs = tok(prompt, return_tensors="pt").to(DEVICE)
-    out = model(**inputs)
-
-    h = last_hidden_last_token(out, TARGET_LAYER).squeeze(0).float()
-    logits = model.lm_head(out.hidden_states[-1][:, -1, :])  # [1, vocab]
-    ids = [tok.convert_tokens_to_ids(x) for x in LETTER]
-    z4 = logits[:, ids][0]  # [4]
-
-    return h, z4
-
-
-# main eval
 def evaluate(split="test"):
     tok, model = load_model()
 
@@ -115,6 +95,8 @@ def evaluate(split="test"):
         "pred_label",
         "correct",
         "calibrated_confidence",
+        "best_class",
+        "best_cosine",
         "cot_raw",
         "cot_answer",
         "cot_confidence",
@@ -138,22 +120,37 @@ def evaluate(split="test"):
             flat = flat[:4]
 
         prompt = build_prompt(stem, flat)
+        inputs = tok(prompt, return_tensors="pt").to(DEVICE)
 
-        # steering pass
-        p_pre, info = steer_and_score_letters(tok, model, prompt, proj, vec_dict)
+        with torch.no_grad():
+            out = model(**inputs)
 
-        # ats calibration
-        h, z4 = hidden_and_logits(tok, model, prompt)
-        tau = ats(h.unsqueeze(0))          # [1,1] or [1]
-        tau_scalar = tau.squeeze()         # []
-        zcal = z4 / tau_scalar             # [4]
-        p_cal = torch.softmax(zcal, dim=-1)
+            h = last_hidden_last_token(out, TARGET_LAYER).float()      # [1,d]
+            pvec = proj(h)                                             # [1,d]
+
+            best_k, best_cos, best_v = None, -1e9, None
+            for k, v in vec_dict.items():
+                v_dev = v.to(DEVICE).unsqueeze(0)                       # [1,d]
+                cos = F.cosine_similarity(pvec, v_dev).item()
+                if cos > best_cos:
+                    best_k, best_cos, best_v = k, cos, v_dev
+
+            last = out.hidden_states[-1].clone()
+            last[:, -1, :] = last[:, -1, :] + ALPHA * best_v           # [1,d]
+            logits = model.lm_head(last[:, -1, :])                     # [1,V]
+
+            ids = [tok.convert_tokens_to_ids(x) for x in LETTER]
+            z4 = logits[:, ids][0]                                     # [4]
+
+            tau = ats(h).view(-1)[0]                                   # scalar
+            zcal = z4 / tau                                            # [4]
+            p_cal = torch.softmax(zcal, dim=-1)                        # [4]
 
         pred = int(torch.argmax(p_cal).item())
         conf = float(p_cal[pred].item())
         correct = int(pred == y)
 
-        probs_all.append(p_cal.cpu().numpy())
+        probs_all.append(p_cal.detach().cpu().numpy())
         labels.append(y)
         confidences.append(conf)
         corrects.append(correct)
@@ -161,44 +158,56 @@ def evaluate(split="test"):
         cot_raw = generate_with_cot(tok, model, prompt)
         cot_ans, cot_conf, cot_analysis = extract_all(cot_raw)
 
-        qid = item["qid"] if "qid" in item else ""
+        qid = item.get("qid", "NA") if isinstance(item, dict) else "NA"
+
         writer.writerow([
             qid,
             y,
             pred,
             correct,
             conf,
+            best_k,
+            best_cos,
             cot_raw,
             cot_ans,
             cot_conf,
             cot_analysis
         ])
 
-        print(f"[INFO] {qid}: pred={pred} correct={correct} conf={conf:.3f}")
+        print(f"[INFO] {qid}: pred={pred} correct={correct} conf={conf:.3f} best={best_k} cos={best_cos:.3f}")
 
     f_csv.close()
 
     probs_all = np.stack(probs_all)
-    labels_np = np.array(labels)
+    labels = np.array(labels)
 
     acc = float(np.mean(corrects))
     mean_conf = float(np.mean(confidences))
-    brier = float(brier_multiclass(probs_all, labels_np))
-    ece = float(ece_multiclass(probs_all, labels_np))
-    auroc = float(macro_auroc_ovr(probs_all, labels_np))
+
+    eye = np.eye(4)[labels]
+    brier = float(np.mean(np.sum((probs_all - eye) ** 2, axis=1)))
+
+    bins = np.linspace(0.0, 1.0, 11)
+    ece = 0.0
+    conf_arr = np.array(confidences)
+    corr_arr = np.array(corrects)
+    for i in range(10):
+        mask = (conf_arr >= bins[i]) & (conf_arr < bins[i+1])
+        if mask.sum() == 0:
+            continue
+        acc_bin = float(corr_arr[mask].mean())
+        conf_bin = float(conf_arr[mask].mean())
+        ece += (mask.sum() / len(conf_arr)) * abs(acc_bin - conf_bin)
 
     print("\n=== METRICS ===")
-    print(f"Accuracy {acc:.4f}")
-    print(f"Mean Conf {mean_conf:.4f}")
-    print(f"Brier {brier:.4f}")
-    print(f"ECE {ece:.4f}")
-    print(f"AUROC {auroc:.4f}")
+    print(f"Accuracy: {acc:.4f}")
+    print(f"Mean Conf: {mean_conf:.4f}")
+    print(f"Brier: {brier:.4f}")
+    print(f"ECE: {ece:.4f}")
     print(f"Results saved → {CSV_OUT}")
 
-    return dict(
-        acc=acc,
-        mean_conf=mean_conf,
-        brier=brier,
-        ece=ece,
-        auroc=auroc,
-    )
+    return dict(acc=acc, mean_conf=mean_conf, brier=brier, ece=ece)
+
+
+if __name__ == "__main__":
+    evaluate("test")

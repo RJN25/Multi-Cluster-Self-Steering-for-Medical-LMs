@@ -6,8 +6,10 @@ os.makedirs(SAVE_DIR, exist_ok=True)
 def save_vectors(vec_dict):  # {'A':tensor(d),...}
     torch.save({k:v.detach().cpu() for k,v in vec_dict.items()}, VEC_PATH)
 
-def load_vectors():
-    return torch.load(VEC_PATH, map_location="cpu")
+def load_vectors(path=None):
+    path = path or VEC_PATH
+    return torch.load(path, map_location="cpu")
 
 def save_proj(module):
     torch.save(module.state_dict(), PROJ_PATH)
+

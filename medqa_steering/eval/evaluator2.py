@@ -13,7 +13,8 @@ from model.loader import load_model
 from model.hooks import last_hidden_last_token
 
 from steering.io import load_vectors
-from steering.projection_head2 import ProjHead
+from steering.steer_infer2 import steer_and_score_letters
+from steering.projection_head3 import ProjHead
 from calibration.ats_head import ATSHead
 from get_tag_contents import extract_all
 

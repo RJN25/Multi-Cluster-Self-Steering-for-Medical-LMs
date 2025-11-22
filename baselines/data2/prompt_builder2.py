@@ -11,9 +11,8 @@ C) {c}
 D) {d}
 
 Reply ONLY with tags:
-<answer> A/B/C/D </answer>
 <analysis> ... </analysis>
-<confidence> 0.0–1.0 </confidence>
+<answer> A/B/C/D </answer>
 """
 
 def build_prompt(stem, choices):

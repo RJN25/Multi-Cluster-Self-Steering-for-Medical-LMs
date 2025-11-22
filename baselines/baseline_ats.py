@@ -71,12 +71,17 @@ def _plot_metric_trends(history: List[dict], split: str) -> Optional[Path]:
 
 def _prompt_hidden_logits(tokenizer, model, prompt):
     inputs = tokenizer(prompt, return_tensors="pt").to(DEVICE)
+    
+    # Generate output
+    generation_output = model.generate(**inputs, max_new_tokens=256, do_sample=False, pad_token_id=tokenizer.eos_token_id)
+    generated_text = tokenizer.decode(generation_output[0], skip_special_tokens=True)
+
     outputs = model(**inputs)
     hidden = last_hidden_last_token(outputs, TARGET_LAYER)
     last_layer = outputs.hidden_states[-1][:, -1, :]
     option_ids = [tokenizer.convert_tokens_to_ids(x) for x in LETTER]
     logits4 = model.lm_head(last_layer)[:, option_ids]
-    return hidden, logits4
+    return hidden, logits4, generated_text
 
 
 def evaluate_baseline(split="validation", csv_name="baseline_ats.csv"):
@@ -103,7 +108,7 @@ def evaluate_baseline(split="validation", csv_name="baseline_ats.csv"):
 
     for idx, example in enumerate(tqdm(dataset, desc=f"Evaluating {split} baseline"), start=1):
         prompt = build_prompt(example["stem"], list(example["choices"]))
-        h_last, logits4 = _prompt_hidden_logits(tokenizer, model, prompt)
+        h_last, logits4, generated_text = _prompt_hidden_logits(tokenizer, model, prompt)
         # Ensure tensors are in the dtype expected by the ATS head.
         h_last = h_last.to(dtype=torch.float32)
         logits4 = logits4.to(dtype=torch.float32)
@@ -134,6 +139,7 @@ def evaluate_baseline(split="validation", csv_name="baseline_ats.csv"):
         logger.info(
             f"{example['qid']}: Correct={correct_flag} | Conf={confidence:.3f} | MeanConf={running_mean_conf:.3f} | Brier={running_brier:.3f} | ECE={running_ece:.3f} | AUROC={auroc_str}"
         )
+        logger.info(f"Generated output for {example['qid']}: {generated_text}")
 
         history.append(
             {
@@ -151,6 +157,7 @@ def evaluate_baseline(split="validation", csv_name="baseline_ats.csv"):
             "label": label,
             "prediction": pred_idx,
             "confidence": confidence,
+            "generated_output": generated_text,
         }
         for i, letter in enumerate(LETTER):
             row[f"p_{letter}"] = float(probs[i])
@@ -167,7 +174,7 @@ def evaluate_baseline(split="validation", csv_name="baseline_ats.csv"):
     final_mean_conf = mean_confidence(probs_arr)
 
     with csv_path.open("w", newline="", encoding="utf-8") as fp:
-        fieldnames = ["qid", "label", "prediction", "confidence"] + [f"p_{l}" for l in LETTER]
+        fieldnames = ["qid", "label", "prediction", "confidence", "generated_output"] + [f"p_{l}" for l in LETTER]
         writer = csv.DictWriter(fp, fieldnames=fieldnames)
         writer.writeheader()
         writer.writerows(rows)

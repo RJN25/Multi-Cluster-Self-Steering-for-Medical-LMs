@@ -12,6 +12,7 @@ D) {d}
 
 Reply ONLY with tags:
 <analysis> ... </analysis>
+followed by a final answer in the format:
 <answer> A/B/C/D </answer>
 """
 

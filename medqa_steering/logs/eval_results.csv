@@ -1,5 +1,5 @@
-qid,true_label,pred_label,correct,calibrated_confidence,best_class,best_cosine,cot_raw,cot_answer,cot_confidence,cot_analysis
-test-00000,1,3,0,0.341796875,D,0.9651907682418823,"You are a medical assistant. Choose the single best answer.
+qid,true_label,pred_label,correct,mcq_confidence,best_class,best_cosine,cot_raw,cot_answer,cot_conf_tag,cot_analysis
+test-00000,1,3,0,0.7676230072975159,D,0.9795998930931091,"You are a medical assistant. Choose the single best answer.
 Question:
 A junior orthopaedic surgery resident is completing a carpal tunnel repair with the department chairman as the attending physician. During the case, the resident inadvertently cuts a flexor tendon. The tendon is repaired without complication. The attending tells the resident that the patient will do fine, and there is no need to report this minor complication that will not harm the patient, as he does not want to make the patient worry unnecessarily. He tells the resident to leave this complication out of the operative report. Which of the following is the correct next action for the resident to take?
 
@@ -16,88 +16,3 @@ Reply ONLY with tags:
 <answer>A</answer>
 <analysis>The resident should disclose the error to the patient and include it in the operative report. This aligns with ethical standards and patient care practices, ensuring transparency and allowing for proper documentation of the procedure. Reporting the error to the ethics committee or refusing to dictate the report would not address the patient's right to know about the surgical outcome.
 <confidence>0.9</confidence>",A,,...
-test-00001,3,3,1,0.33203125,D,0.9671061635017395,"You are a medical assistant. Choose the single best answer.
-Question:
-A 67-year-old man with transitional cell carcinoma of the bladder comes to the physician because of a 2-day history of ringing sensation in his ear. He received this first course of neoadjuvant chemotherapy 1 week ago. Pure tone audiometry shows a sensorineural hearing loss of 45 dB. The expected beneficial effect of the drug that caused this patient's symptoms is most likely due to which of the following actions?
-
-Options:
-A) Inhibition of proteasome
-B) Hyperstabilization of microtubules
-C) Generation of free radicals
-D) Cross-linking of DNA
-
-Reply ONLY with tags:
-<answer> A/B/C/D </answer>
-<analysis> ... </analysis>
-<confidence> 0.0–1.0 </confidence>
-<answer>A</answer>
-<analysis>The chemotherapy regimen for transitional cell carcinoma of the bladder often includes drugs like cisplatin, which can cause ototoxicity leading to sensorineural hearing loss. Cisplatin works by cross-linking DNA, which can lead to cell death but also has side effects such as damage to the auditory nerve and cochlea, resulting in sensorineural hearing loss. This aligns with option A, inhibition of proteasome, being incorrect, and options B and D being less relevant to ototoxicity. Option C, generation of free radicals, is also plausible as some chemotherapeutic agents generate reactive oxygen species that can damage cells, including those in the ear. However, the primary mechanism of ototoxicity from cisplatin is its DNA cross-linking action.</analysis>
-<confidence>0.8</confidence>",A,,...
-test-00002,1,3,0,0.3671875,D,0.9843412041664124,"You are a medical assistant. Choose the single best answer.
-Question:
-Two weeks after undergoing an emergency cardiac catherization with stenting for unstable angina pectoris, a 61-year-old man has decreased urinary output and malaise. He has type 2 diabetes mellitus and osteoarthritis of the hips. Prior to admission, his medications were insulin and naproxen. He was also started on aspirin, clopidogrel, and metoprolol after the coronary intervention. His temperature is 38°C (100.4°F), pulse is 93/min, and blood pressure is 125/85 mm Hg. Examination shows mottled, reticulated purplish discoloration of the feet. Laboratory studies show:
-Hemoglobin count 14 g/dL
-Leukocyte count 16,400/mm3
-Segmented neutrophils 56%
-Eosinophils 11%
-Lymphocytes 31%
-Monocytes 2%
-Platelet count 260,000/mm3
-Erythrocyte sedimentation rate 68 mm/h
-Serum
-Urea nitrogen 25 mg/dL
-Creatinine 4.2 mg/dL
-Renal biopsy shows intravascular spindle-shaped vacuoles. Which of the following is the most likely cause of this patient's symptoms?""
-
-Options:
-A) Renal papillary necrosis
-B) Cholesterol embolization
-C) Eosinophilic granulomatosis with polyangiitis
-D) Polyarteritis nodosa
-
-Reply ONLY with tags:
-<answer> A/B/C/D </answer>
-<analysis> ... </analysis>
-<confidence> 0.0–1.0 </confidence>
-<answer>B</answer>
-<analysis>The patient's presentation, including the mottled, reticulated purplish discoloration of the feet, elevated erythrocyte sedimentation rate, renal biopsy showing intravascular spindle-shaped vacuoles, and the history of recent cardiac catheterization with stenting, strongly suggests cholesterol embolization. Cholesterol emboli can lead to ischemia in various organs, causing symptoms like those described. The presence of intravascular vacuoles in the renal biopsy further supports this diagnosis.</analysis>
-<confidence>0.9</confidence>",A,,...
-test-00003,3,3,1,0.4453125,D,0.9770125150680542,"You are a medical assistant. Choose the single best answer.
-Question:
-A 39-year-old woman is brought to the emergency department because of fevers, chills, and left lower quadrant pain. Her temperature is 39.1°C (102.3°F), pulse is 126/min, respirations are 28/min, and blood pressure is 80/50 mm Hg. There is blood oozing around the site of a peripheral intravenous line. Pelvic examination shows mucopurulent discharge from the cervical os and left adnexal tenderness. Laboratory studies show:
-Platelet count 14,200/mm3
-Fibrinogen 83 mg/mL (N = 200–430 mg/dL)
-D-dimer 965 ng/mL (N < 500 ng/mL)
-When phenol is applied to a sample of the patient's blood at 90°C, a phosphorylated N-acetylglucosamine dimer with 6 fatty acids attached to a polysaccharide side chain is identified. A blood culture is most likely to show which of the following?""
-
-Options:
-A) Coagulase-positive, gram-positive cocci forming mauve-colored colonies on methicillin-containing agar
-B) Encapsulated, gram-negative coccobacilli forming grey-colored colonies on charcoal blood agar
-C) Spore-forming, gram-positive bacilli forming yellow colonies on casein agar
-D) Lactose-fermenting, gram-negative rods forming pink colonies on MacConkey agar
-
-Reply ONLY with tags:
-<answer> A/B/C/D </answer>
-<analysis> ... </analysis>
-<confidence> 0.0–1.0 </confidence>
-<answer>A</answer>
-<analysis>The presence of elevated D-dimer levels and thrombocytopenia suggests the possibility of disseminated intravascular coagulation (DIC). This condition often results from severe infections, such as sepsis. The combination of symptoms including fever, chills, left lower quadrant pain, and pelvic exam findings strongly points towards a bacterial infection, particularly a gram-positive organism. Coagulase-positive, gram-positive cocci are commonly associated with severe infections like sepsis, and they can form mauve-colored colonies on methicillin-containing agar. These characteristics align well with the clinical scenario described.</analysis>
-<confidence>0.9</confidence>",A,,...
-test-00004,1,3,0,0.388671875,D,0.9758061766624451,"You are a medical assistant. Choose the single best answer.
-Question:
-A 35-year-old man comes to the physician because of itchy, watery eyes for the past week. He has also been sneezing multiple times a day during this period. He had a similar episode 1 year ago around springtime. He has iron deficiency anemia and ankylosing spondylitis. Current medications include ferrous sulfate, artificial tear drops, and indomethacin. He works as an elementary school teacher. His vital signs are within normal limits. Visual acuity is 20/20 without correction. Physical examination shows bilateral conjunctival injection with watery discharge. The pupils are 3 mm, equal, and reactive to light. Examination of the anterior chamber of the eye is unremarkable. Which of the following is the most appropriate treatment?
-
-Options:
-A) Erythromycin ointment
-B) Ketotifen eye drops
-C) Warm compresses
-D) Fluorometholone eye drops
-
-Reply ONLY with tags:
-<answer> A/B/C/D </answer>
-<analysis> ... </analysis>
-<confidence> 0.0–1.0 </confidence>
-<answer>A</answer>
-
-<analysis>The patient's symptoms of itchy, watery eyes and sneezing suggest allergic conjunctivitis. Given his history of similar episodes around springtime and the presence of conjunctival injection and watery discharge, erythromycin ointment (option A) is the most appropriate treatment for bacterial conjunctivitis, which can be a complication of allergic conjunctivitis. However, since no bacterial infection is confirmed, the most likely diagnosis is allergic conjunctivitis, making erythromycin ointment less suitable. Ketotifen (option B) is an antihistamine that can help reduce allergy symptoms, making it a good choice. Warm compresses (option C) are not typically used for allergic conjunctivitis. Fluorometholone (option D) is a steroid, which is not indicated for allergic conjunctivitis unless there is evidence of significant inflammation or secondary infection.</analysis>
-<confidence>0.7</confidence>",A,,...
